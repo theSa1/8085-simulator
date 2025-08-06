@@ -65,7 +65,7 @@ const SystemInfo: React.FC<{
               </tr>
             </thead>
             <tbody>
-              {systemValues.map((item, index) => (
+              {systemValues.map((item) => (
                 <tr key={item.name}>
                   <td className="py-1 text-gray-800">{item.name}</td>
                   <td className="py-1 text-right font-mono">{item.value}</td>

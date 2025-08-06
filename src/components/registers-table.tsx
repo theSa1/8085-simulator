@@ -72,10 +72,10 @@ const RegistersTable: React.FC<{
       { name: "Z", value: flagBits[1] },
       { name: "*", value: flagBits[2] },
       { name: "AC", value: flagBits[3] },
-      { name: "P", value: flagBits[4] },
-      { name: "*", value: flagBits[5] },
-      { name: "CY", value: flagBits[6] },
-      { name: "*", value: flagBits[7] },
+      { name: "*", value: flagBits[4] },
+      { name: "P", value: flagBits[5] },
+      { name: "*", value: flagBits[6] },
+      { name: "CY", value: flagBits[7] },
     ],
   };
 

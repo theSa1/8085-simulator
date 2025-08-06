@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { CPU8085 } from "../lib/8085";
+import { formatHex } from "../lib/utils";
 
 const MemoryView: React.FC<{
   cpu: CPU8085;
@@ -41,11 +42,11 @@ const MemoryView: React.FC<{
                   key={index}
                   className={displayIndex % 2 === 0 ? "bg-blue-50" : "bg-white"}
                 >
-                  <td className="p-2 font-medium text-gray-800">
-                    {index.toString(16).toUpperCase().padStart(4, "0")}
+                  <td className="p-2 font-mono font-medium text-gray-800">
+                    {formatHex(index, 2)}
                   </td>
                   <td className="p-2 text-center font-mono">
-                    {byte.toString(16).padStart(2, "0")}
+                    {formatHex(byte)}
                   </td>
                   <td className="p-2 text-center">
                     <button

@@ -36,8 +36,25 @@ export const assembler = (
   const instructions: number[] = [];
   const assemblyInstructions: AssemblyInstruction[] = [];
 
-  for (const line of lines) {
+  const labels: Record<string, number> = {};
+  let nextLabel: string | undefined;
+
+  for (let line of lines) {
     const mnemonic = line.split(/\s+/)[0].toUpperCase();
+
+    if (mnemonic.endsWith(":")) {
+      const label = mnemonic.slice(0, -1).trim().toUpperCase();
+      if (labels[label] !== undefined) {
+        throw new Error(`Duplicate label found: ${label}`);
+      }
+      labels[label] = instructions.length;
+      nextLabel = label;
+      line = line.slice(mnemonic.length).trim();
+      if (line.length === 0) {
+        continue;
+      }
+    }
+
     const parts = line
       .split(/\s+/)
       .slice(1)
@@ -45,33 +62,40 @@ export const assembler = (
       .split(",")
       .map((part) => part.trim().toUpperCase());
 
-    const normalizedParts = parts
-      .map((part) => {
-        if (part.length === 0) {
-          return undefined;
-        }
-        if (mnemonic === "RST") {
-          return part;
-        }
-        if (part.length === 1) {
-          return part;
-        }
+    let isMemoryAddress = false;
+    let address: number | undefined;
+    if (typeof labels[parts[0]] === "number") {
+      isMemoryAddress = true;
+      address = labels[parts[0]];
+    }
 
-        if (part.endsWith("H")) {
-          return "DATA";
-        } else if (part.endsWith("B")) {
-          return "DATA";
-        } else if (part.endsWith("O")) {
-          return "DATA";
-        } else if (!isNaN(Number(part))) {
-          return "DATA";
-        }
-      })
-      .filter((part) => part !== undefined);
+    const normalizedParts = isMemoryAddress
+      ? ["DATA"]
+      : parts
+          .map((part) => {
+            if (part.length === 0) {
+              return undefined;
+            }
+            if (mnemonic === "RST") {
+              return part;
+            }
+            if (part.length === 1) {
+              return part;
+            }
+
+            if (part.endsWith("H")) {
+              return "DATA";
+            } else if (part.endsWith("B")) {
+              return "DATA";
+            } else if (part.endsWith("O")) {
+              return "DATA";
+            } else if (!isNaN(Number(part))) {
+              return "DATA";
+            }
+          })
+          .filter((part) => part !== undefined);
 
     const opcode = findOpcode([mnemonic, ...normalizedParts]);
-
-    console.log(mnemonic, normalizedParts, opcode);
 
     if (opcode === null) {
       throw new Error(`Unknown mnemonic or invalid syntax: ${line}`);
@@ -87,26 +111,44 @@ export const assembler = (
     instructions.push(opcode);
     assemblyInstructions.push({
       address: formatHex(instructions.length - 1, 2),
-      label: "",
+      label: nextLabel || "",
       mnemonic: `${mnemonic} ${parts.join(",")}`,
       hexCode: formatHex(opcode),
       bytes: 1 + oprandSize,
       mCycles: 0,
       tStates: 0,
     });
+    nextLabel = undefined;
     if (oprandSize > 0) {
-      const data = extractData(parts[parts.length - 1], oprandSize);
-      for (const byte of data) {
-        assemblyInstructions.push({
-          address: formatHex(instructions.length, 2),
-          label: "",
-          mnemonic: "",
-          bytes: 0,
-          hexCode: formatHex(byte),
-          mCycles: 0,
-          tStates: 0,
-        });
-        instructions.push(byte);
+      if (isMemoryAddress && address !== undefined) {
+        console.log("Using address from label:", address);
+        const data = extractBytes(address, 2);
+        for (const byte of data) {
+          assemblyInstructions.push({
+            address: formatHex(instructions.length, 2),
+            label: "",
+            mnemonic: "",
+            bytes: 0,
+            hexCode: formatHex(byte),
+            mCycles: 0,
+            tStates: 0,
+          });
+          instructions.push(byte);
+        }
+      } else {
+        const data = extractData(parts[parts.length - 1], oprandSize);
+        for (const byte of data) {
+          assemblyInstructions.push({
+            address: formatHex(instructions.length, 2),
+            label: "",
+            mnemonic: "",
+            bytes: 0,
+            hexCode: formatHex(byte),
+            mCycles: 0,
+            tStates: 0,
+          });
+          instructions.push(byte);
+        }
       }
     }
   }
@@ -117,7 +159,7 @@ export const assembler = (
   };
 };
 
-export const extractData = (rawData: string, bytes: number): number[] => {
+const extractData = (rawData: string, bytes: number): number[] => {
   const data: number[] = [];
   let value: number;
   const type = rawData.slice(-1).toLowerCase();
@@ -138,4 +180,12 @@ export const extractData = (rawData: string, bytes: number): number[] => {
   }
 
   return data.reverse();
+};
+
+const extractBytes = (data: number, noOfBytes: number): number[] => {
+  const bytes: number[] = [];
+  for (let i = 0; i < noOfBytes; i++) {
+    bytes.unshift((data >> (i * 8)) & 0xff);
+  }
+  return bytes.reverse();
 };

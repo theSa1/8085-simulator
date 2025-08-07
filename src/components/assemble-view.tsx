@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { type FC } from "preact/compat";
+import { useState } from "preact/hooks";
 import type { CPU8085 } from "../lib/8085";
 
 export interface AssemblyInstruction {
@@ -11,7 +12,7 @@ export interface AssemblyInstruction {
   tStates: number;
 }
 
-const AssemblerView: React.FC<{
+const AssemblerView: FC<{
   instructions: AssemblyInstruction[];
   cpu: CPU8085;
   triggerRerender: () => void;

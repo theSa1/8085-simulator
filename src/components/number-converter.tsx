@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import { type FC } from "preact/compat";
+import { useState } from "preact/hooks";
 
-const NumberConverter: React.FC = () => {
+const NumberConverter: FC = () => {
   const [hexValue, setHexValue] = useState("");
   const [decValue, setDecValue] = useState("");
   const [binValue, setBinValue] = useState("");

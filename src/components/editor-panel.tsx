@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import { type FC } from "preact/compat";
+import { useState } from "preact/hooks";
 import AssemblerView, { type AssemblyInstruction } from "./assemble-view";
 import { assembler } from "../lib/assembler";
 import { CPU8085 } from "../lib/8085";
 
-const EditorPanel: React.FC<{
+const EditorPanel: FC<{
   cpu: CPU8085;
   triggerRerender: () => void;
 }> = ({ cpu, triggerRerender }) => {

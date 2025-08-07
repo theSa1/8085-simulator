@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { type FC } from "preact/compat";
+import { useState } from "preact/hooks";
 import type { CPU8085 } from "../lib/8085";
 import { formatHex } from "../lib/utils";
 
-const MemoryView: React.FC<{
+const MemoryView: FC<{
   cpu: CPU8085;
   triggerRerender: () => void;
 }> = ({ cpu, triggerRerender }) => {

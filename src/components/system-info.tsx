@@ -1,8 +1,8 @@
-import React from "react";
+import { type FC } from "preact/compat";
 import type { CPU8085 } from "../lib/8085";
 import { formatHex } from "../lib/utils";
 
-const SystemInfo: React.FC<{
+const SystemInfo: FC<{
   cpu: CPU8085;
 }> = ({ cpu }) => {
   const systemValues = [

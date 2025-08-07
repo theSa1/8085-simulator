@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useState } from "preact/hooks";
+import { type FC } from "preact/compat";
 import RegistersTable from "./registers-table";
 import SystemInfo from "./system-info";
 import NumberConverter from "./number-converter";
@@ -6,7 +7,7 @@ import type { CPU8085 } from "../lib/8085";
 import MemoryView from "./memory-view";
 // import MemoryView from "./MemoryView";
 
-const RightPanel: React.FC<{
+const RightPanel: FC<{
   cpu: CPU8085;
   triggerRerender: () => void;
 }> = ({ cpu, triggerRerender }) => {

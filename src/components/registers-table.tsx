@@ -1,4 +1,4 @@
-import React from "react";
+import { type FC } from "preact/compat";
 import type { CPU8085 } from "../lib/8085";
 import { formatHex, numberToBits } from "../lib/utils";
 
@@ -8,7 +8,7 @@ interface Register {
   bits: string[];
 }
 
-const RegistersTable: React.FC<{
+const RegistersTable: FC<{
   cpu: CPU8085;
 }> = ({ cpu }) => {
   const registers: Register[] = [

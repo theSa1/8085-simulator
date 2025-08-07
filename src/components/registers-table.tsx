@@ -51,12 +51,12 @@ const RegistersTable: React.FC<{
       name: "Memory(M)",
       value: formatHex(
         cpu.getAddressValue(
-          cpu.addBytes(cpu.registers["H"], cpu.registers["L"])
+          cpu.concat2Bytes(cpu.registers["H"], cpu.registers["L"])
         )
       ),
       bits: numberToBits(
         cpu.getAddressValue(
-          cpu.addBytes(cpu.registers["H"], cpu.registers["L"])
+          cpu.concat2Bytes(cpu.registers["H"], cpu.registers["L"])
         )
       ),
     },

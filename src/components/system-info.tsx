@@ -9,7 +9,10 @@ const SystemInfo: React.FC<{
     { name: "Stack Pointer(SP)", value: formatHex(cpu.registers["SP"], 2) },
     {
       name: "Memory Pointer (HL)",
-      value: formatHex(cpu.addBytes(cpu.registers["H"], cpu.registers["L"]), 2),
+      value: formatHex(
+        cpu.concat2Bytes(cpu.registers["H"], cpu.registers["L"]),
+        2
+      ),
     },
     { name: "Program Status Word(PSW)", value: "" },
     { name: "Program Counter(PC)", value: formatHex(cpu.registers["PC"], 2) },

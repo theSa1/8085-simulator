@@ -6,6 +6,7 @@ export class CPU8085 {
       this.registers = cpu.registers;
       this.memory = new Uint8Array(cpu.memory);
       this.isHalted = cpu.isHalted;
+      this.lastRanInstruction = cpu.lastRanInstruction;
     }
   }
 
@@ -23,6 +24,7 @@ export class CPU8085 {
   };
   memory: Uint8Array = new Uint8Array(2 ** 16);
   isHalted: boolean = true;
+  lastRanInstruction: number | null = null;
 
   reset() {
     this.registers = {
@@ -39,6 +41,7 @@ export class CPU8085 {
     };
     this.memory.fill(0);
     this.isHalted = true;
+    this.lastRanInstruction = null;
   }
 
   loadProgram(program: number[]) {
@@ -67,13 +70,9 @@ export class CPU8085 {
 
   runSingleStep() {
     const opcode = this.memory[this.registers.PC];
+    this.lastRanInstruction = this.registers.PC;
     this.executeOpcode(opcode);
     this.registers.PC++;
-    console.log(
-      `Executed opcode: ${opcode.toString(
-        16
-      )} at PC: ${this.registers.PC.toString(16)}`
-    );
   }
 
   executeOpcode(opcode: number) {
@@ -326,9 +325,24 @@ export class CPU8085 {
         // TODO: Implement DAA
         break;
 
+      case "JMP":
+      case "JC":
+      case "JNC":
+      case "JP":
+      case "JM":
+      case "JZ":
+      case "JNZ":
+      case "JPE":
+      case "JPO":
+        this.handleJumpInstruction(mnemonic[0]);
+        break;
+
       case "HLT":
         this.isHalted = true;
         break;
+
+      default:
+        console.error(`Unhandled opcode: ${mnemonic}`);
     }
   }
 
@@ -414,21 +428,30 @@ export class CPU8085 {
     return (high << 8) | low;
   }
 
-  addBytes(a: number, b: number, useCarry: boolean = false): number {
-    let result = a + b;
-    if (useCarry) {
-      result += this.getFlagBit(7);
-    }
-    this.setFlagBit(result > 0xff, 7);
+  private addBytes(a: number, b: number, useCarry: boolean = false): number {
+    const carryIn = useCarry ? this.getFlagBit(0) : 0; // Get carry before calculation
+    let result = a + b + carryIn;
+
+    this.setFlagBit(result > 0xff, 0); // Carry flag
+    this.setFlagBit((result & 0xff) === 0, 6); // Zero flag
+    this.setFlagBit((result & 0x80) !== 0, 7); // Sign flag
+    this.setFlagBit((a & 0x0f) + (b & 0x0f) + carryIn > 0x0f, 4); // Auxiliary carry
+    this.setFlagBit(this.isParity(result & 0xff), 2); // Parity flag
+
     return this.fb(result);
   }
 
-  subBytes(a: number, b: number, useBorrow: boolean = false): number {
-    let result = a - b;
-    if (useBorrow) {
-      result -= this.getFlagBit(7);
-    }
-    this.setFlagBit(result < 0, 7);
+  private subBytes(a: number, b: number, useBorrow: boolean = false): number {
+    const borrowIn = useBorrow ? this.getFlagBit(0) : 0; // Get borrow before calculation
+    let result = a - b - borrowIn;
+
+    // Set flags
+    this.setFlagBit(result < 0, 0); // Carry flag (borrow)
+    this.setFlagBit((result & 0xff) === 0, 6); // Zero flag
+    this.setFlagBit((result & 0x80) !== 0, 7); // Sign flag
+    this.setFlagBit((a & 0x0f) - (b & 0x0f) - borrowIn < 0, 4); // Auxiliary carry
+    this.setFlagBit(this.isParity(result & 0xff), 2); // Parity flag
+
     return this.fb(result);
   }
 
@@ -448,5 +471,60 @@ export class CPU8085 {
       throw new Error("Bit index out of bounds");
     }
     return (this.registers.FLAG & (1 << bit)) !== 0 ? 1 : 0;
+  }
+
+  isParity(value: number): boolean {
+    let count = 0;
+    for (let i = 0; i < 8; i++) {
+      if ((value & (1 << i)) !== 0) {
+        count++;
+      }
+    }
+    return count % 2 === 0;
+  }
+
+  private handleJumpInstruction(instruction: string): void {
+    const jumpAddress = this.concat2Bytes(
+      this.memory[this.registers.PC + 2],
+      this.memory[this.registers.PC + 1]
+    );
+
+    let shouldJump = false;
+
+    switch (instruction) {
+      case "JMP":
+        shouldJump = true;
+        break;
+      case "JC":
+        shouldJump = this.getFlagBit(0) === 1; // Carry flag
+        break;
+      case "JNC":
+        shouldJump = this.getFlagBit(0) === 0;
+        break;
+      case "JP":
+        shouldJump = this.getFlagBit(7) === 0; // Sign flag
+        break;
+      case "JM":
+        shouldJump = this.getFlagBit(7) === 1;
+        break;
+      case "JZ":
+        shouldJump = this.getFlagBit(6) === 1; // Zero flag
+        break;
+      case "JNZ":
+        shouldJump = this.getFlagBit(6) === 0;
+        break;
+      case "JPE":
+        shouldJump = this.getFlagBit(2) === 1; // Parity flag
+        break;
+      case "JPO":
+        shouldJump = this.getFlagBit(2) === 0;
+        break;
+    }
+
+    if (shouldJump) {
+      this.registers.PC = jumpAddress - 1;
+    } else {
+      this.registers.PC += 2;
+    }
   }
 }

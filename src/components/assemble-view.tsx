@@ -65,8 +65,8 @@ const AssemblerView: React.FC<{
                 <tr
                   key={instruction.address}
                   className={`border-b border-gray-200 ${
-                    index === cpu.registers["PC"]
-                      ? "bg-blue-50"
+                    index === cpu.lastRanInstruction
+                      ? "bg-blue-200"
                       : "bg-green-50 hover:bg-green-100"
                   } transition-colors`}
                 >

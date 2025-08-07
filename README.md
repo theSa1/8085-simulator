@@ -217,3 +217,5 @@ If you encounter any issues or have questions:
 ---
 
 **Note**: This simulator is designed for educational purposes and may not perfectly replicate all aspects of the physical Intel 8085 microprocessor.
+
+(I know this is AI generated slope but i am lazy)

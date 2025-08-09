@@ -27,14 +27,14 @@ const AssemblerView: FC<{
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 h-full flex flex-col">
       {/* Assembler Table */}
-      <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
-        <div className="bg-gray-100 px-4 py-3 border-b border-gray-300">
+      <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden flex-1 flex flex-col min-h-0">
+        <div className="bg-gray-100 px-4 py-3 border-b border-gray-300 flex-shrink-0">
           <h2 className="text-lg font-semibold text-gray-800">Assembler</h2>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-auto flex-1">
           <table className="w-full text-sm">
             <thead className="bg-blue-100 border-b border-gray-300">
               <tr>
@@ -94,7 +94,7 @@ const AssemblerView: FC<{
       </div>
 
       {/* Simulation Controls */}
-      <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden flex-shrink-0">
         <div className="bg-gray-100 px-4 py-3 border-b border-gray-300">
           <h3 className="text-lg font-semibold text-gray-800">Simulate</h3>
         </div>

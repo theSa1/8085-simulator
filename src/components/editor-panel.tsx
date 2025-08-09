@@ -80,7 +80,7 @@ const EditorPanel: FC<{
           </div>
         </>
       ) : (
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-4 min-h-0 flex flex-col">
           <AssemblerView
             instructions={assemblyInstructions}
             cpu={cpu}

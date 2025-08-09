@@ -3,16 +3,21 @@ import { opcodeLookup } from "./opcodes-lookup";
 import { formatHex } from "./utils";
 
 const findOpcode = (parts: string[]): number | null => {
-  for (const indexStr of Object.keys(opcodeLookup)) {
-    const index = Number(indexStr);
+  console.log("Finding opcode for parts:", parts);
+  for (const opcodeIndexString of Object.keys(opcodeLookup)) {
+    const index = Number(opcodeIndexString);
     const opcode = opcodeLookup[index];
     if (
       opcode.length === parts.length &&
-      opcode.every((part, i) => {
-        if (i != 0 && part !== "D" && part.startsWith("D")) {
-          return parts[i] === "DATA";
+      opcode.every((opcodePart, partIndex) => {
+        if (
+          partIndex != 0 &&
+          opcodePart !== "D" &&
+          opcodePart.startsWith("D")
+        ) {
+          return parts[partIndex] === "DATA";
         } else {
-          return part === parts[i];
+          return opcodePart === parts[partIndex];
         }
       })
     ) {
@@ -36,24 +41,46 @@ export const assembler = (
   const instructions: number[] = [];
   const assemblyInstructions: AssemblyInstruction[] = [];
 
-  const labels: Record<string, number> = {};
-  let nextLabel: string | undefined;
-
-  for (let line of lines) {
-    const mnemonic = line.split(/\s+/)[0].toUpperCase();
-
-    if (mnemonic.endsWith(":")) {
-      const label = mnemonic.slice(0, -1).trim().toUpperCase();
+  const labels: Record<
+    string,
+    {
+      key: number;
+      line: number;
+      address?: number;
+    }
+  > = {};
+  lines.forEach((line, lineIndex) => {
+    line = line.trim().split(/\s+/)[0].toUpperCase().trim();
+    if (line.endsWith(":")) {
+      const label = line.slice(0, -1).trim();
       if (labels[label] !== undefined) {
         throw new Error(`Duplicate label found: ${label}`);
       }
-      labels[label] = instructions.length;
-      nextLabel = label;
-      line = line.slice(mnemonic.length).trim();
+      labels[label] = {
+        key: 300 + Math.round(Math.random() * 100000),
+        line: lineIndex,
+      };
+    }
+  });
+  let nextLabel: string | undefined;
+
+  lines.forEach((currentLine, lineIndex) => {
+    let line = currentLine;
+
+    const labelEntry = Object.entries(labels).find(
+      ([, label]) => label.line === lineIndex
+    );
+
+    if (labelEntry) {
+      nextLabel = labelEntry[0];
+      labels[labelEntry[0]].address = instructions.length;
+      line = line.replace(labelEntry[0] + ":", "").trim();
       if (line.length === 0) {
-        continue;
+        return;
       }
     }
+
+    const mnemonic = line.split(/\s+/)[0].toUpperCase();
 
     const parts = line
       .split(/\s+/)
@@ -64,9 +91,9 @@ export const assembler = (
 
     let isMemoryAddress = false;
     let address: number | undefined;
-    if (typeof labels[parts[0]] === "number") {
+    if (typeof labels[parts[0]]?.key === "number") {
       isMemoryAddress = true;
-      address = labels[parts[0]];
+      address = labels[parts[0]].key;
     }
 
     const normalizedParts = isMemoryAddress
@@ -79,19 +106,20 @@ export const assembler = (
             if (mnemonic === "RST") {
               return part;
             }
-            if (part.length === 1) {
-              return part;
+
+            if (part.length !== 1 || !isNaN(Number(part[0]))) {
+              if (part.endsWith("H")) {
+                return "DATA";
+              } else if (part.endsWith("B")) {
+                return "DATA";
+              } else if (part.endsWith("O")) {
+                return "DATA";
+              } else if (!isNaN(Number(part))) {
+                return "DATA";
+              }
             }
 
-            if (part.endsWith("H")) {
-              return "DATA";
-            } else if (part.endsWith("B")) {
-              return "DATA";
-            } else if (part.endsWith("O")) {
-              return "DATA";
-            } else if (!isNaN(Number(part))) {
-              return "DATA";
-            }
+            return part;
           })
           .filter((part) => part !== undefined);
 
@@ -101,11 +129,11 @@ export const assembler = (
       throw new Error(`Unknown mnemonic or invalid syntax: ${line}`);
     }
 
-    let oprandSize = 0;
+    let operandSize = 0;
     if (opcodeLookup[opcode].includes("D8")) {
-      oprandSize = 1;
+      operandSize = 1;
     } else if (opcodeLookup[opcode].includes("D16")) {
-      oprandSize = 2;
+      operandSize = 2;
     }
 
     instructions.push(opcode);
@@ -114,28 +142,27 @@ export const assembler = (
       label: nextLabel || "",
       mnemonic: `${mnemonic} ${parts.join(",")}`,
       hexCode: formatHex(opcode),
-      bytes: 1 + oprandSize,
+      bytes: 1 + operandSize,
       mCycles: 0,
       tStates: 0,
     });
     nextLabel = undefined;
-    if (oprandSize > 0) {
+    if (operandSize > 0) {
       if (isMemoryAddress && address !== undefined) {
-        const data = extractBytes(address, 2);
-        for (const byte of data) {
+        for (const addressByte of [address, address + 1]) {
           assemblyInstructions.push({
             address: formatHex(instructions.length, 2),
             label: "",
             mnemonic: "",
             bytes: 0,
-            hexCode: formatHex(byte),
+            hexCode: addressByte.toString(),
             mCycles: 0,
             tStates: 0,
           });
-          instructions.push(byte);
+          instructions.push(addressByte);
         }
       } else {
-        const data = extractData(parts[parts.length - 1], oprandSize);
+        const data = extractData(parts[parts.length - 1], operandSize);
         for (const byte of data) {
           assemblyInstructions.push({
             address: formatHex(instructions.length, 2),
@@ -150,7 +177,21 @@ export const assembler = (
         }
       }
     }
-  }
+  });
+
+  instructions.forEach((byte, byteIndex) => {
+    const labelEntry = Object.entries(labels).find(
+      ([, label]) => label.key === byte
+    );
+
+    if (labelEntry) {
+      const bytes = extractBytes(labelEntry[1].address || 0, 2);
+      instructions[byteIndex] = bytes[0];
+      instructions[byteIndex + 1] = bytes[1];
+      assemblyInstructions[byteIndex].hexCode = formatHex(bytes[0]);
+      assemblyInstructions[byteIndex + 1].hexCode = formatHex(bytes[1]);
+    }
+  });
 
   return {
     instructions,
@@ -158,33 +199,33 @@ export const assembler = (
   };
 };
 
-const extractData = (rawData: string, bytes: number): number[] => {
+const extractData = (rawData: string, byteCount: number): number[] => {
   const data: number[] = [];
   let value: number;
-  const type = rawData.slice(-1).toLowerCase();
-  const rawValue = rawData.slice(0, -1);
+  const numberType = rawData.slice(-1).toLowerCase();
+  const numberValue = rawData.slice(0, -1);
 
-  if (type === "h") {
-    value = parseInt(rawValue, 16);
-  } else if (type === "o") {
-    value = parseInt(rawValue, 8);
-  } else if (type === "b") {
-    value = parseInt(rawValue, 2);
+  if (numberType === "h") {
+    value = parseInt(numberValue, 16);
+  } else if (numberType === "o") {
+    value = parseInt(numberValue, 8);
+  } else if (numberType === "b") {
+    value = parseInt(numberValue, 2);
   } else {
     value = parseInt(rawData, 10);
   }
 
-  for (let i = 0; i < bytes; i++) {
-    data.unshift((value >> (i * 8)) & 0xff);
+  for (let byteIndex = 0; byteIndex < byteCount; byteIndex++) {
+    data.unshift((value >> (byteIndex * 8)) & 0xff);
   }
 
   return data.reverse();
 };
 
-const extractBytes = (data: number, noOfBytes: number): number[] => {
+const extractBytes = (value: number, byteCount: number): number[] => {
   const bytes: number[] = [];
-  for (let i = 0; i < noOfBytes; i++) {
-    bytes.unshift((data >> (i * 8)) & 0xff);
+  for (let byteIndex = 0; byteIndex < byteCount; byteIndex++) {
+    bytes.unshift((value >> (byteIndex * 8)) & 0xff);
   }
   return bytes.reverse();
 };

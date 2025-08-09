@@ -195,7 +195,7 @@ export const opcodeLookup = {
   0xc6: ["ADI", "D8"],
   0xc7: ["RST", "0"],
   0xc8: ["RZ"],
-  0xc9: ["RET", "D16"],
+  0xc9: ["RET"],
   0xca: ["JZ"],
   0xcc: ["CZ", "D16"],
   0xcd: ["CALL", "D16"],

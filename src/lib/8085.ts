@@ -211,21 +211,13 @@ export class CPU8085 {
       case "PUSH":
         const pushRegPair = mnemonic[1];
         value = this.getRegisterPairValue(pushRegPair);
-        this.registers.SP = (this.registers.SP - 2) & 0xffff;
-        this.setAddressValue(this.registers.SP + 1, (value >> 8) & 0xff);
-        this.setAddressValue(this.registers.SP, value & 0xff);
+        this.pushToStack(value);
         break;
 
       case "POP":
         const popRegPair = mnemonic[1];
-        this.setRegisterPairValue(
-          popRegPair,
-          this.concat2Bytes(
-            this.getAddressValue(this.registers.SP + 1),
-            this.getAddressValue(this.registers.SP)
-          )
-        );
-        this.registers.SP = (this.registers.SP + 2) & 0xffff;
+        value = this.popFromStack();
+        this.setRegisterPairValue(popRegPair, value);
         break;
 
       case "OUT":
@@ -361,6 +353,35 @@ export class CPU8085 {
       case "JPE":
       case "JPO":
         this.handleJumpInstruction(mnemonic[0]);
+        break;
+
+      case "CALL":
+      case "CC":
+      case "CNC":
+      case "CP":
+      case "CM":
+      case "CZ":
+      case "CNZ":
+      case "CPE":
+      case "CPO":
+        this.handleCallInstruction(mnemonic[0]);
+        break;
+
+      case "RET":
+      case "RC":
+      case "RNC":
+      case "RP":
+      case "RM":
+      case "RZ":
+      case "RNZ":
+      case "RPE":
+      case "RPO":
+        this.handleReturnInstruction(mnemonic[0]);
+        break;
+
+      case "RST":
+        const rstAddress = parseInt(mnemonic[1]) * 8;
+        this.registers.PC = rstAddress - 1;
         break;
 
       case "HLT":
@@ -552,5 +573,106 @@ export class CPU8085 {
     } else {
       this.registers.PC += 2;
     }
+  }
+
+  private handleCallInstruction(instruction: string): void {
+    const callAddress = this.concat2Bytes(
+      this.memory[this.registers.PC + 2],
+      this.memory[this.registers.PC + 1]
+    );
+
+    let shouldCall = false;
+
+    switch (instruction) {
+      case "CALL":
+        shouldCall = true;
+        break;
+      case "CC":
+        shouldCall = this.getFlagBit(0) === 1; // Carry flag
+        break;
+      case "CNC":
+        shouldCall = this.getFlagBit(0) === 0;
+        break;
+      case "CP":
+        shouldCall = this.getFlagBit(7) === 0; // Sign flag
+        break;
+      case "CM":
+        shouldCall = this.getFlagBit(7) === 1;
+        break;
+      case "CZ":
+        shouldCall = this.getFlagBit(6) === 1; // Zero flag
+        break;
+      case "CNZ":
+        shouldCall = this.getFlagBit(6) === 0;
+        break;
+      case "CPE":
+        shouldCall = this.getFlagBit(2) === 1; // Parity flag
+        break;
+      case "CPO":
+        shouldCall = this.getFlagBit(2) === 0;
+        break;
+    }
+
+    if (shouldCall) {
+      this.pushToStack(this.registers.PC + 3);
+      this.registers.PC = callAddress - 1;
+    } else {
+      this.registers.PC += 2;
+    }
+  }
+
+  private handleReturnInstruction(instruction: string): void {
+    const returnAddress = this.popFromStack();
+
+    let shouldReturn = false;
+
+    switch (instruction) {
+      case "RET":
+        shouldReturn = true;
+        break;
+      case "RC":
+        shouldReturn = this.getFlagBit(0) === 1;
+        break;
+      case "RNC":
+        shouldReturn = this.getFlagBit(0) === 0;
+        break;
+      case "RP":
+        shouldReturn = this.getFlagBit(7) === 0;
+        break;
+      case "RM":
+        shouldReturn = this.getFlagBit(7) === 1;
+        break;
+      case "RZ":
+        shouldReturn = this.getFlagBit(6) === 1;
+        break;
+      case "RNZ":
+        shouldReturn = this.getFlagBit(6) === 0;
+        break;
+      case "RPE":
+        shouldReturn = this.getFlagBit(2) === 1;
+        break;
+      case "RPO":
+        shouldReturn = this.getFlagBit(2) === 0;
+        break;
+    }
+
+    if (shouldReturn) {
+      this.registers.PC = returnAddress - 1;
+    }
+  }
+
+  private pushToStack(value: number): void {
+    this.registers.SP = (this.registers.SP - 2) & 0xffff;
+    this.setAddressValue(this.registers.SP + 1, (value >> 8) & 0xff);
+    this.setAddressValue(this.registers.SP, value & 0xff);
+  }
+
+  private popFromStack(): number {
+    const value = this.concat2Bytes(
+      this.getAddressValue(this.registers.SP + 1),
+      this.getAddressValue(this.registers.SP)
+    );
+    this.registers.SP = (this.registers.SP + 2) & 0xffff;
+    return value;
   }
 }

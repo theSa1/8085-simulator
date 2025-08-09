@@ -122,7 +122,8 @@ export class CPU8085 {
         this.registers.PC += 2;
         break;
       case "LDAX":
-        // TODO: Implement LDAX
+        value = this.getRegisterPairValue(mnemonic[1]);
+        this.registers.A = this.getAddressValue(value);
         break;
 
       case "LXI":
@@ -164,7 +165,8 @@ export class CPU8085 {
         break;
 
       case "STAX":
-        // TODO: Implement STAX
+        value = this.getRegisterPairValue(mnemonic[1]);
+        this.setAddressValue(value, this.registers.A);
         break;
 
       case "SHLD":
@@ -196,15 +198,34 @@ export class CPU8085 {
         break;
 
       case "XTHL":
-        // TODO: Implement XTHL
+        const spValue = this.registers.SP;
+        const tempL1 = this.getAddressValue(spValue);
+        const tempH1 = this.getAddressValue(spValue + 1);
+        this.setAddressValue(spValue, this.registers.L);
+        this.setAddressValue(spValue + 1, this.registers.H);
+        this.registers.L = tempL1;
+        this.registers.H = tempH1;
+        this.registers.SP = spValue;
         break;
 
       case "PUSH":
-        // TODO: Implement PUSH
+        const pushRegPair = mnemonic[1];
+        value = this.getRegisterPairValue(pushRegPair);
+        this.registers.SP = (this.registers.SP - 2) & 0xffff;
+        this.setAddressValue(this.registers.SP + 1, (value >> 8) & 0xff);
+        this.setAddressValue(this.registers.SP, value & 0xff);
         break;
 
       case "POP":
-        // TODO: Implement POP
+        const popRegPair = mnemonic[1];
+        this.setRegisterPairValue(
+          popRegPair,
+          this.concat2Bytes(
+            this.getAddressValue(this.registers.SP + 1),
+            this.getAddressValue(this.registers.SP)
+          )
+        );
+        this.registers.SP = (this.registers.SP + 2) & 0xffff;
         break;
 
       case "OUT":
@@ -248,7 +269,12 @@ export class CPU8085 {
         break;
 
       case "DAD":
-        // TODO: Implement DAD
+        const dadRegPair = mnemonic[1];
+        const currentDADValue = this.getRegisterPairValue(dadRegPair);
+        const hlValue = this.concat2Bytes(this.registers.H, this.registers.L);
+        const result = currentDADValue + hlValue;
+        this.setFlagBit(result > 0xffff, 0);
+        this.setRegisterPairValue("H", result & 0xffff);
         break;
 
       case "SUB":

@@ -9,7 +9,7 @@ const findOpcode = (parts: string[]): number | null => {
     if (
       opcode.length === parts.length &&
       opcode.every((part, i) => {
-        if (part !== "D" && part.startsWith("D")) {
+        if (i != 0 && part !== "D" && part.startsWith("D")) {
           return parts[i] === "DATA";
         } else {
           return part === parts[i];
@@ -121,7 +121,6 @@ export const assembler = (
     nextLabel = undefined;
     if (oprandSize > 0) {
       if (isMemoryAddress && address !== undefined) {
-        console.log("Using address from label:", address);
         const data = extractBytes(address, 2);
         for (const byte of data) {
           assemblyInstructions.push({

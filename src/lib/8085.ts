@@ -384,6 +384,14 @@ export class CPU8085 {
         this.registers.PC = rstAddress - 1;
         break;
 
+      case "PCHL":
+        this.registers.PC = this.concat2Bytes(
+          this.registers.H,
+          this.registers.L
+        );
+        this.registers.PC--;
+        break;
+
       case "CMP":
         const cmpRegister = mnemonic[1];
         if (cmpRegister === "M") {

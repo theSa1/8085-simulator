@@ -13,6 +13,7 @@ const DevicesView: FC<{
 
   const handleCellClick = (address: number) => {
     setInputAddress(formatHex(address));
+    setInputValue(formatHex(cpu.ioPorts[address]));
     setSelectedAddress(address);
   };
 

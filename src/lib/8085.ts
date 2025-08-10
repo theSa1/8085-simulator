@@ -210,14 +210,23 @@ export class CPU8085 {
 
       case "PUSH":
         const pushRegPair = mnemonic[1];
-        value = this.getRegisterPairValue(pushRegPair);
+        if (pushRegPair === "PSW") {
+          value = this.concat2Bytes(this.registers.A, this.registers.FLAG);
+        } else {
+          value = this.getRegisterPairValue(pushRegPair);
+        }
         this.pushToStack(value);
         break;
 
       case "POP":
         const popRegPair = mnemonic[1];
         value = this.popFromStack();
-        this.setRegisterPairValue(popRegPair, value);
+        if (popRegPair === "PSW") {
+          this.registers.A = (value >> 8) & 0xff;
+          this.registers.FLAG = value & 0xff;
+        } else {
+          this.setRegisterPairValue(popRegPair, value);
+        }
         break;
 
       case "OUT":
@@ -305,11 +314,11 @@ export class CPU8085 {
         const incRegister = mnemonic[1];
         if (incRegister === "M") {
           value = this.getAddressValue(this.getMemoryPointer());
-          value = this.addBytes(value, 1);
+          value = this.addBytes(value, 1, false, false);
           this.setAddressValue(this.getMemoryPointer(), value);
         } else {
           value = this.getRegisterValue(incRegister);
-          value = this.addBytes(value, 1);
+          value = this.addBytes(value, 1, false, false);
           this.setRegisterValue(incRegister, value);
         }
         break;
@@ -324,11 +333,11 @@ export class CPU8085 {
         const decRegister = mnemonic[1];
         if (decRegister === "M") {
           value = this.getAddressValue(this.getMemoryPointer());
-          value = this.subBytes(value, 1);
+          value = this.subBytes(value, 1, false, false);
           this.setAddressValue(this.getMemoryPointer(), value);
         } else {
           value = this.getRegisterValue(decRegister);
-          value = this.subBytes(value, 1);
+          value = this.subBytes(value, 1, false, false);
           this.setRegisterValue(decRegister, value);
         }
         break;
@@ -615,23 +624,36 @@ export class CPU8085 {
     return (high << 8) | low;
   }
 
-  private addBytes(a: number, b: number, useCarry: boolean = false): number {
+  private addBytes(
+    a: number,
+    b: number,
+    useCarry: boolean = false,
+    updateCarry: boolean = true
+  ): number {
     const carryIn = useCarry ? this.getFlagBit(0) : 0; // Get carry before calculation
     let result = a + b + carryIn;
 
-    this.setFlagBit(result > 0xff, 0); // Carry flag
+    if (updateCarry) {
+      this.setFlagBit(result > 0xff, 0);
+    }
     this.setFlagBit((a & 0x0f) + (b & 0x0f) + carryIn > 0x0f, 4); // Auxiliary carry
     this.updateFlags(result & 0xff);
 
     return this.fb(result & 0xff);
   }
 
-  private subBytes(a: number, b: number, useBorrow: boolean = false): number {
+  private subBytes(
+    a: number,
+    b: number,
+    useBorrow: boolean = false,
+    updateCarry: boolean = true
+  ): number {
     const borrowIn = useBorrow ? this.getFlagBit(0) : 0; // Get borrow before calculation
     let result = a - b - borrowIn;
 
-    // Set flags
-    this.setFlagBit(result < 0, 0); // Carry flag (borrow)
+    if (updateCarry) {
+      this.setFlagBit(result < 0, 0); // Carry flag (borrow)
+    }
     this.setFlagBit((a & 0x0f) - (b & 0x0f) - borrowIn < 0, 4); // Auxiliary carry
     this.updateFlags(result & 0xff);
 

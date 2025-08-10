@@ -6,7 +6,7 @@ const SystemInfo: FC<{
   cpu: CPU8085;
 }> = ({ cpu }) => {
   const systemValues = [
-    { name: "Stack Pointer(SP)", value: formatHex(cpu.registers["SP"], 2) },
+    { name: "Stack Pointer (SP)", value: formatHex(cpu.registers["SP"], 2) },
     {
       name: "Memory Pointer (HL)",
       value: formatHex(
@@ -14,8 +14,14 @@ const SystemInfo: FC<{
         2
       ),
     },
-    { name: "Program Status Word(PSW)", value: "" },
-    { name: "Program Counter(PC)", value: formatHex(cpu.registers["PC"], 2) },
+    {
+      name: "Program Status Word (PSW)",
+      value: formatHex(
+        cpu.concat2Bytes(cpu.registers["A"], cpu.registers["FLAG"]),
+        2
+      ),
+    },
+    { name: "Program Counter (PC)", value: formatHex(cpu.registers["PC"], 2) },
     { name: "Clock Cycle Counter", value: "" },
     { name: "Instruction Counter", value: "" },
   ];

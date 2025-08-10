@@ -25,6 +25,7 @@ export class CPU8085 {
   memory: Uint8Array = new Uint8Array(2 ** 16);
   isHalted: boolean = true;
   lastRanInstruction: number | null = null;
+  ioPorts: Uint8Array = new Uint8Array(2 ** 8);
 
   reset() {
     this.registers = {
@@ -230,11 +231,15 @@ export class CPU8085 {
         break;
 
       case "OUT":
-        // TODO: Implement OUT
+        const outputAddress = this.memory[this.registers.PC + 1];
+        this.ioPorts[outputAddress] = this.registers.A;
+        this.registers.PC++;
         break;
 
       case "IN":
-        // TODO: Implement IN
+        const inputAddress = this.memory[this.registers.PC + 1];
+        this.registers.A = this.ioPorts[inputAddress];
+        this.registers.PC++;
         break;
 
       case "ADD":

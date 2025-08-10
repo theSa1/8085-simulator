@@ -5,6 +5,7 @@ import SystemInfo from "./system-info";
 import NumberConverter from "./number-converter";
 import type { CPU8085 } from "../lib/8085";
 import MemoryView from "./memory-view";
+import DevicesView from "./devices-view";
 // import MemoryView from "./MemoryView";
 
 const RightPanel: FC<{
@@ -53,9 +54,7 @@ const RightPanel: FC<{
           <MemoryView cpu={cpu} triggerRerender={triggerRerender} />
         )}
         {activeTab === "devices" && (
-          <div className="text-center text-gray-500 py-8">
-            Devices view will be implemented here
-          </div>
+          <DevicesView cpu={cpu} triggerRerender={triggerRerender} />
         )}
       </div>
     </div>
